@@ -1,0 +1,77 @@
+<div class="overflow-x-auto">
+    <table class="w-full text-sm text-left">
+        <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
+            <tr>
+                <th class="px-6 py-4 font-semibold">OT / Archivo</th>
+                <th class="px-6 py-4 font-semibold">Cliente</th>
+                <th class="px-6 py-4 font-semibold">Estado de Validación</th>
+                <th class="px-6 py-4 font-semibold">Detalles de Pesos</th>
+                <th class="px-6 py-4 font-semibold text-right">Acciones</th>
+            </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+            {% for item in results %}
+            <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="px-6 py-4">
+                    <div class="flex flex-col">
+                        <span class="font-bold text-slate-900">{{ item.ot }}</span>
+                        <span class="text-[10px] text-slate-400 truncate max-w-[150px]">{{ item.name }}</span>
+                    </div>
+                </td>
+                <td class="px-6 py-4">
+                    <span class="text-slate-600 font-medium">{{ item.cliente }}</span>
+                </td>
+                <td class="px-6 py-4">
+                    {% if item.status == "Error" %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <i class="fas fa-circle-exclamation mr-1.5"></i> Error de Lectura
+                        </span>
+                    {% elif item.valid %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            <i class="fas fa-check-circle mr-1.5"></i> Válido
+                        </span>
+                    {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            <i class="fas fa-triangle-exclamation mr-1.5"></i> Inconsistente
+                        </span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4">
+                    {% if item.validation %}
+                    <div class="flex items-center gap-4 text-[11px]">
+                        <div class="flex flex-col">
+                            <span class="text-slate-400">Peso Bolsa:</span>
+                            <span class="{{ 'text-green-600' if item.validation['Peso Bolsa'].valid else 'text-red-600 font-bold' }}">
+                                {{ item.validation['Peso Bolsa'].calculated }}g (OT: {{ item.validation['Peso Bolsa'].ot }}g)
+                            </span>
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-slate-400">Kilos Totales:</span>
+                            <span class="{{ 'text-green-600' if item.validation['Kilos'].valid else 'text-red-600 font-bold' }}">
+                                {{ item.validation['Kilos'].calculated }}kg (OT: {{ item.validation['Kilos'].ot }}kg)
+                            </span>
+                        </div>
+                    </div>
+                    {% else %}
+                        <span class="text-slate-400 italic">{{ item.details or '---' }}</span>
+                    {% endif %}
+                </td>
+                <td class="px-6 py-4 text-right">
+                    <button class="text-primary-600 hover:text-primary-800 font-medium transition-colors"
+                            @click="addAlert('Detalles de la OT {{ item.ot }}', 'info')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% if not results %}
+            <tr>
+                <td colspan="5" class="p-12 text-center text-slate-400">
+                    <i class="fas fa-folder-open text-4xl mb-4 opacity-20"></i>
+                    <p>No hay resultados para mostrar actualmente.</p>
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>

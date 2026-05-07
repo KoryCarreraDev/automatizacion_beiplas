@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold text-slate-900">Procesamiento de Archivos</h1>
+            <p class="text-slate-500 mt-1">Sube tus documentos para iniciar el proceso de automatización.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                <span class="w-2 h-2 mr-2 bg-green-500 rounded-full animate-pulse"></span>
+                Servicio Activo
+            </span>
+        </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-8">
+            <form id="upload-form" 
+                  hx-post="/upload" 
+                  hx-encoding="multipart/form-data" 
+                  hx-target="#results-container" 
+                  hx-indicator="#upload-indicator"
+                  class="space-y-6">
+                
+                <div class="group relative flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-12 transition-all hover:border-primary-500 hover:bg-primary-50/50 cursor-pointer"
+                     x-data="{ dragging: false }"
+                     @dragover.prevent="dragging = true"
+                     @dragleave.prevent="dragging = false"
+                     @drop.prevent="dragging = false"
+                     :class="dragging ? 'border-primary-500 bg-primary-50' : ''">
+                    
+                    <input type="file" name="files" id="file-input" multiple class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" 
+                           onchange="document.getElementById('file-names').textContent = this.files.length > 0 ? Array.from(this.files).map(f => f.name).join(', ') : ''">
+                    
+                    <div class="text-center">
+                        <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary-100 text-primary-600 mb-4 group-hover:scale-110 transition-transform">
+                            <i class="fas fa-cloud-upload-alt text-2xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-slate-900">Haga clic o arrastre archivos aquí</h3>
+                        <p class="text-sm text-slate-500 mt-1">Soporta múltiples archivos PDF y Excel</p>
+                    </div>
+                    
+                    <div id="file-names" class="mt-4 text-xs font-medium text-primary-600 truncate max-w-full px-4"></div>
+                </div>
+
+                <div class="flex flex-col md:flex-row justify-between items-center gap-4 pt-4 border-t border-slate-100">
+                    <div class="flex items-center gap-3 w-full md:w-auto">
+                        <label for="extra_percent" class="text-sm font-medium text-slate-700 whitespace-nowrap">
+                            % Porcentaje Extra:
+                        </label>
+                        <div class="relative max-w-[120px]">
+                            <input type="number" 
+                                   name="extra_percent" 
+                                   id="extra_percent" 
+                                   step="0.1" 
+                                   value="3" 
+                                   class="block w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:ring-primary-500 focus:border-primary-500 transition-all"
+                                   placeholder="Ej: 3">
+                            <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                                <span class="text-slate-400 text-xs">%</span>
+                            </div>
+                        </div>
+                        <div class="relative group" x-data="{ open: false }">
+                            <button type="button" @mouseenter="open = true" @mouseleave="open = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                                <i class="fas fa-circle-info text-sm"></i>
+                            </button>
+                            <div x-show="open" 
+                                 x-transition 
+                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl z-10 pointer-events-none"
+                                 x-cloak>
+                                Porcentaje de tolerancia y desperdicio aplicado al cálculo de kilos totales. Por defecto es 3%.
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center gap-4 w-full md:w-auto justify-end">
+                        <div class="relative group" x-data="{ open: false }">
+                            <button type="button" @mouseenter="open = true" @mouseleave="open = false" class="text-slate-400 hover:text-slate-600 transition-colors">
+                                <i class="fas fa-triangle-exclamation text-lg"></i>
+                            </button>
+                            <div x-show="open" 
+                                 x-transition 
+                                 class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-slate-900 text-white text-[10px] rounded shadow-xl z-10 pointer-events-none"
+                                 x-cloak>
+                                Asegúrese de que los archivos no estén protegidos por contraseña para un procesamiento correcto.
+                                <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-slate-900"></div>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="w-full md:w-auto inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-xl shadow-sm text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                            <span id="upload-indicator" class="htmx-indicator mr-2">
+                                <i class="fas fa-circle-notch animate-spin"></i>
+                            </span>
+                            Procesar Documentos
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Alert Space -->
+    <div id="message-area" class="empty:hidden">
+        <!-- Las alertas de HTMX se cargarán aquí si es necesario -->
+    </div>
+
+    <!-- Results Table Section -->
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+            <h2 class="font-semibold text-slate-900 flex items-center gap-2">
+                <i class="fas fa-list-check text-primary-600"></i>
+                Resultados del Procesamiento
+            </h2>
+            <div class="flex items-center gap-2">
+                <button hx-get="/results/clear" hx-target="#results-container" class="text-xs font-medium text-slate-500 hover:text-red-600 transition-colors">
+                    Limpiar Todo
+                </button>
+            </div>
+        </div>
+        <div id="results-container">
+            <div class="p-12 text-center text-slate-400">
+                <i class="fas fa-folder-open text-4xl mb-4 opacity-20"></i>
+                <p>No hay resultados para mostrar actualmente.</p>
+                <p class="text-xs">Suba archivos para ver el análisis aquí.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Simple script to handle dynamic alerts from HTMX headers or response
+    document.body.addEventListener('htmx:afterOnLoad', function(evt) {
+        if (evt.detail.xhr.status === 200) {
+            // Optional: Success message
+        } else if (evt.detail.xhr.status >= 400) {
+            const errorMsg = evt.detail.xhr.responseText || 'Error al procesar los archivos';
+            addAlert(errorMsg, 'error');
+        }
+    });
+
+    function addAlert(message, type = 'info') {
+        const container = document.getElementById('alert-container');
+        const alert = document.createElement('div');
+        const colors = {
+            'error': 'bg-red-50 text-red-800 border-red-200',
+            'success': 'bg-green-50 text-green-800 border-green-200',
+            'info': 'bg-blue-50 text-blue-800 border-blue-200'
+        };
+        
+        alert.className = `p-4 rounded-lg border shadow-lg flex items-center justify-between transform translate-x-full transition-transform duration-300 ${colors[type]}`;
+        alert.innerHTML = `
+            <div class="flex items-center">
+                <i class="fas ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info'} mr-3"></i>
+                <span class="text-sm font-medium">${message}</span>
+            </div>
+            <button onclick="this.parentElement.remove()" class="ml-4 text-current opacity-50 hover:opacity-100">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        
+        container.appendChild(alert);
+        setTimeout(() => alert.classList.remove('translate-x-full'), 10);
+        setTimeout(() => {
+            alert.classList.add('translate-x-full');
+            setTimeout(() => alert.remove(), 300);
+        }, 5000);
+    }
+</script>
+{% endblock %}
