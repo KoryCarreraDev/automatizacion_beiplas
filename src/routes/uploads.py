@@ -8,8 +8,11 @@ from src.services.pdf.extractor import extract_text
 from src.services.parsers.ot_parser import extract_ot
 from src.services.validators.ot_validator import ot_validation
 
+from src.utils.path import resource_path
+
 router = APIRouter()
-templates = Jinja2Templates(directory=os.path.join("src", "templates"))
+templates = Jinja2Templates(directory=resource_path("src/templates"))
+
 
 @router.post("/upload")
 async def upload_files(
