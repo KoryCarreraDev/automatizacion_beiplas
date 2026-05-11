@@ -2,8 +2,14 @@ import re
 import ast
 
 
-
 VALID_CONSTANTS = ["MAHIZ", "BAJA", "ALTA", "PP"]
+
+KNOWN_LABELS = (
+    r"Fecha de Entrega|Referencia|Orden de Compra|Orden de Trabajo|Cliente|"
+    r"Cant\.|Procesos|Peso Bolsa|Formato Bolsa|Calibre|Caras|Ancho Extrusi[oó]n|"
+    r"Largo Extrusi[oó]n|Metros|Kilos|Observaciones|Sellado|Troquelado|"
+    r"Presentaci[oó]n|Paquetes|Bultos|Tipo|Impresi[oó]n|Fuelle|Lateral|Repeticiones"
+)
 
 
 def safe_math_eval(expr: str) -> float:
@@ -43,34 +49,38 @@ def inches_to_cm(value):
     return round(float(value) * 2.54, 2)
 
 
-def validate_measure(calculated_width, extrusion_width, tolerance=0.5):
+def validate_measure(calculated_width, extrusion_width, tolerance=1.0):
     """
     Valida si el ancho calculado coincide con el ancho de extrusión.
-    Soporta una tolerancia predefinida (por defecto 0.5 cm).
+    Soporta una tolerancia predefinida (por defecto 1.0 cm).
     """
     if calculated_width is None or extrusion_width is None:
         return False
     try:
         calc = float(calculated_width)
-        ext_str = str(extrusion_width).replace(",", ".")
-        ext = float(ext_str)
+        ext = float(str(extrusion_width).replace(",", "."))
         return abs(calc - ext) <= tolerance
     except (ValueError, TypeError):
         return False
 
 
-
-
 def clean_value(value: str):
-
     if not value:
         return None
+    cleaned = value.strip()
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    return cleaned or None
 
-    return value.strip()
+
+def clean_single_line(value: str) -> str | None:
+    if not value:
+        return None
+    line = value.split("\n")[0].strip()
+    line = re.sub(r"\s{2,}", " ", line)
+    return line or None
 
 
 def extract_constant(text: str):
-
     composition_match = re.search(
         r"BPREF\d+\s+(MAHIZ|BAJA|ALTA|PP)", text, re.IGNORECASE
     )
@@ -78,14 +88,13 @@ def extract_constant(text: str):
     if composition_match:
         return composition_match.group(1).upper()
 
-    reference_match = re.search(r"Referencia:\s*(.+)", text, re.IGNORECASE)
+    reference_match = re.search(r"Referencia[:\s]+(.+)", text, re.IGNORECASE)
 
     if reference_match:
-
         reference_text = reference_match.group(1)
 
         constant_match = re.search(
-            r"(MAHIZ|BAJA|ALTA|PP)", reference_text, re.IGNORECASE
+            r"\b(MAHIZ|BAJA|ALTA|PP)\b", reference_text, re.IGNORECASE
         )
 
         if constant_match:
@@ -99,10 +108,11 @@ def extract_measure(reference: str):
         return None, None, None
 
     ref_norm = reference.replace(",", ".")
+    ref_line = ref_norm.split("\n")[0]
 
     pattern = r"((?:\d+(?:\.\d+)?\s*[\+\-\*\/]\s*)*\d+(?:\.\d+)?)\s*[Xx*]\s*(\d+(?:\.\d+)?)"
 
-    match = re.search(pattern, ref_norm)
+    match = re.search(pattern, ref_line)
 
     if not match:
         return None, None, None
@@ -137,31 +147,29 @@ def extract_measure(reference: str):
     return ancho_f, largo_f, medida_formateada
 
 
-
-
-
 def extract_compositions(text: str):
-
     compositions = []
 
     pattern = re.findall(
         r"(BPREF\d+)\s+"
         r"(MAHIZ|BAJA|ALTA|PP)\s+"
-        r"([\d.,]+)\s*%\s+"
-        r"(.+?)\s+"
+        r"([\d.,]+)\s*%\s*"
+        r"(.*?)\s*"
         r"([\d.,]+)\s*%",
         text,
         re.IGNORECASE,
     )
 
     for item in pattern:
-
+        # Limpiar el nombre de la materia secundaria si quedó con espacios
+        mat_sec = item[3].strip() if item[3] else None
+        
         compositions.append(
             {
                 "Referencia Materia Prima": item[0],
                 "Constante": item[1].upper(),
                 "% Materia Prima": item[2],
-                "Materia Secundaria": item[3],
+                "Materia Secundaria": mat_sec,
                 "% Secundario": item[4],
             }
         )
@@ -169,34 +177,72 @@ def extract_compositions(text: str):
     return compositions
 
 
-def extract_ot(text: str):
+def extract_fuelles(text: str):
+    fuelles = []
+    pattern = re.findall(
+        r"(Lateral|Central|Superior|Inferior)\s+([\d.,]+)\s+([\d.,]+)",
+        text,
+        re.IGNORECASE,
+    )
+    for item in pattern:
+        fuelles.append(
+            {
+                "Tipo": item[0].capitalize(),
+                "Medida 1": item[1],
+                "Medida 2": item[2],
+            }
+        )
+    return fuelles
 
+
+def extract_impresion(text: str):
+    impresiones = []
+    caras_matches = re.findall(
+        r"Cara Impresi[oó]n\s*\d+\s+(.+?)(?=\n|Cara Impresi[oó]n|Rodillo|$)",
+        text,
+        re.IGNORECASE,
+    )
+    for cara in caras_matches:
+        valor = cara.strip()
+        if valor:
+            impresiones.append(valor)
+    return impresiones
+
+
+def extract_ot(text: str):
     data = {}
 
     fields = {
-        "Fecha de Entrega": r"Fecha de Entrega:\s*(\d{2}/\d{2}/\d{4})",
-        "Referencia": r"Referencia:\s*(.+)",
-        "Orden de Compra(OC)": r"Orden de Compra\(OC\):\s*(.*)",
-        "Orden de Trabajo": r"Orden de Trabajo\s+(OT\d+)",
-        "Cliente": r"Cliente\s+(.+?)\s+Cant\.",
-        "Cant. Planificada": r"Cant\. Planificada\s*([\d,]+)",
-        "Peso Bolsa (gr)": r"Peso Bolsa \(gr\)\s*([\d.,]+)",
-        "Formato Bolsa": r"Formato Bolsa\s*(.+)",
-        "Calibre Extrusión": r"Extrusión.*?Calibre\s*([\d.,]+)",
-        "Ancho Extrusión (cm)": r"Ancho Extrusión \(cm\)\s*([\d.,]+)",
-        "Largo Extrusión (cm)": r"Largo Extrusión \(cm\)\s*([\d.,]+)",
-        "Metros": r"Metros\s*([\d.,]+)",
-        "Kilos": r"Kilos\s*([\d.,]+)",
-        "Tipo Sellado": r"Tipo Sellado\s*(.+)",
-        "Paquetes de (Unidades)": r"Paquetes de \(Unidades\):\s*([\d.,]+)",
-        "Bultos de (paquetes)": r"Bultos de \(paquetes\):\s*([\d.,]+)",
+        "Fecha de Entrega": r"Fecha de Entrega[:\s]+(\d{2}/\d{2}/\d{4})",
+        "Referencia": r"Referencia[:\s]+(.+?)(?=\n|Orden de Compra|$)",
+        "Orden de Compra(OC)": r"Orden de Compra\(OC\)[:\s]*([\w\-]*)",
+        "Orden de Trabajo": r"Orden de Trabajo[:\s]+(OT\d+)",
+        "Cliente": r"Cliente[:\s]+(.+?)(?=\s{2,}|\s+Cant\.|\s+Procesos|\n|$)",
+        "Cant. Planificada": r"Cant\. Planificada[:\s]*([\d,. ]+?)(?=\n|$)",
+        "Procesos": r"Procesos[:\s]+(.+?)(?=\n|Cant\.|$)",
+        "Peso Bolsa (gr)": r"Peso Bolsa \(gr\)[:\s]*([\d.,]+)",
+        "Formato Bolsa": r"Formato Bolsa[:\s]*(.+?)(?=\n|Caras|Calibre|$)",
+        "Caras": r"Caras[:\s]*([\d]+)(?=\n|$)",
+        "Calibre Extrusión": r"(?:^|\n)Calibre[:\s]*([\d.,]+)",
+        "Ancho Extrusión (cm)": r"Ancho Extrusi[oó]n \(cm\)[:\s]*([\d.,]+)",
+        "Largo Extrusión (cm)": r"Largo Extrusi[oó]n \(cm\)[:\s]*([\d.,]+)",
+        "Metros": r"(?<!\w)Metros[:\s]*([\d.,]+)",
+        "Kilos": r"(?<!\w)Kilos[:\s]*([\d.,]+)",
+        "Largo Sellado (cm)": r"Largo General \(cm\)[:\s]*([\d.,]+)",
+        "Tipo Sellado": r"Tipo Sellado[:\s]*(.+?)(?=\n|Calibre|$)",
+        "Calibre Sellado": r"Sellado.*?\nCalibre[:\s]*([\d.,]+)",
+        "Tipo Troquelado": r"Tipo Troquel[:\s]*(.+?)(?=\n|$)",
+        "Paquetes de (Unidades)": r"Paquetes de \(Unidades\)[:\s]*([\d.,]+)",
+        "Bultos de (paquetes)": r"Bultos de \(paquetes\)[:\s]*([\d.,]+)",
     }
 
     for field_name, pattern in fields.items():
+        match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
+        raw = match.group(1) if match else None
+        data[field_name] = clean_single_line(raw)
 
-        match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
-
-        data[field_name] = clean_value(match.group(1)) if match else None
+    if data.get("Cant. Planificada"):
+        data["Cant. Planificada"] = re.sub(r"[,\s]", "", data["Cant. Planificada"].replace(".", ""))
 
     data["Constante"] = extract_constant(text)
 
@@ -210,13 +256,20 @@ def extract_ot(text: str):
         ancho, data.get("Ancho Extrusión (cm)")
     )
 
-
     data["Composiciones"] = extract_compositions(text)
+    data["Fuelles"] = extract_fuelles(text)
+    data["Impresión por Cara"] = extract_impresion(text)
 
-    observations = re.findall(
-        r"Observaciones\s*(.+?)(?=\n[A-ZÁÉÍÓÚ][a-z]|$)", text, re.DOTALL
+    observations_raw = re.findall(
+        r"Observaciones[:\s]*(.+?)(?=\n(?:" + KNOWN_LABELS + r")|\Z)",
+        text,
+        re.DOTALL | re.IGNORECASE,
     )
 
-    data["Observaciones"] = [obs.strip() for obs in observations if obs.strip()]
+    data["Observaciones"] = [
+        re.sub(r"\s{2,}", " ", obs).strip()
+        for obs in observations_raw
+        if obs.strip()
+    ]
 
     return data

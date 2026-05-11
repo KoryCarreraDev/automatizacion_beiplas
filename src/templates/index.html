@@ -106,11 +106,10 @@
 
     <!-- Alert Space -->
     <div id="message-area" class="empty:hidden">
-        <!-- Las alertas de HTMX se cargarán aquí si es necesario -->
     </div>
 
     <!-- Results Table Section -->
-    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden min-h-[400px]">
         <div class="px-6 py-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
             <h2 class="font-semibold text-slate-900 flex items-center gap-2">
                 <i class="fas fa-list-check text-primary-600"></i>
@@ -132,12 +131,36 @@
     </div>
 </div>
 
+<style>
+    @media print {
+        body * {
+            visibility: hidden;
+        }
+        #results-container, #results-container * {
+            visibility: visible;
+        }
+        #results-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+        }
+        .print\:hidden {
+            display: none !important;
+        }
+    }
+</style>
+
 <script>
-    // Simple script to handle dynamic alerts from HTMX headers or response
     document.body.addEventListener('htmx:afterOnLoad', function(evt) {
-        if (evt.detail.xhr.status === 200) {
-            // Optional: Success message
-        } else if (evt.detail.xhr.status >= 400) {
+        if (evt.detail.target.id === 'results-container') {
+            const rowCount = evt.detail.target.querySelectorAll('tbody tr:not(:first-child)').length;
+            if (rowCount > 0) {
+                addAlert(`Procesamiento completado: ${rowCount} archivos analizados con éxito.`, 'success');
+            }
+        }
+        
+        if (evt.detail.xhr.status >= 400) {
             const errorMsg = evt.detail.xhr.responseText || 'Error al procesar los archivos';
             addAlert(errorMsg, 'error');
         }
@@ -146,17 +169,23 @@
     function addAlert(message, type = 'info') {
         const container = document.getElementById('alert-container');
         const alert = document.createElement('div');
-        const colors = {
-            'error': 'bg-red-50 text-red-800 border-red-200',
-            'success': 'bg-green-50 text-green-800 border-green-200',
-            'info': 'bg-blue-50 text-blue-800 border-blue-200'
+        
+        const config = {
+            'error': { color: 'bg-red-50 text-red-800 border-red-200', icon: 'fa-circle-xmark' },
+            'success': { color: 'bg-green-50 text-green-800 border-green-200', icon: 'fa-check-circle' },
+            'info': { color: 'bg-blue-50 text-blue-800 border-blue-200', icon: 'fa-circle-info' }
         };
         
-        alert.className = `p-4 rounded-lg border shadow-lg flex items-center justify-between transform translate-x-full transition-transform duration-300 ${colors[type]}`;
+        const style = config[type] || config.info;
+        
+        alert.className = `p-4 rounded-xl border shadow-lg flex items-center justify-between transform translate-x-full transition-all duration-300 ${style.color}`;
         alert.innerHTML = `
             <div class="flex items-center">
-                <i class="fas ${type === 'error' ? 'fa-circle-xmark' : 'fa-circle-info'} mr-3"></i>
-                <span class="text-sm font-medium">${message}</span>
+                <i class="fas ${style.icon} mr-3 text-lg"></i>
+                <div>
+                    <p class="text-sm font-bold capitalize">${type}</p>
+                    <p class="text-xs opacity-90">${message}</p>
+                </div>
             </div>
             <button onclick="this.parentElement.remove()" class="ml-4 text-current opacity-50 hover:opacity-100">
                 <i class="fas fa-times"></i>
@@ -165,10 +194,14 @@
         
         container.appendChild(alert);
         setTimeout(() => alert.classList.remove('translate-x-full'), 10);
+        
+        // Auto remove
         setTimeout(() => {
-            alert.classList.add('translate-x-full');
-            setTimeout(() => alert.remove(), 300);
-        }, 5000);
+            if (alert.parentElement) {
+                alert.classList.add('translate-x-full');
+                setTimeout(() => alert.remove(), 300);
+            }
+        }, 6000);
     }
 </script>
 {% endblock %}

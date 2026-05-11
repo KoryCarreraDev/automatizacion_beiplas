@@ -71,13 +71,13 @@ def ot_validation(data, extra_percent=3):
     bag_weight_valid = within_tolerance(
         calculated_bag_weight,
         peso_bolsa_ot,
-        1
+        3
     )
 
     kilos_valid = within_tolerance(
         calculated_total_weight,
         kilos_ot,
-        1
+        3
     )
 
     return {

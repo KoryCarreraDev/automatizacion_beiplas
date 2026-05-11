@@ -1,7 +1,46 @@
-<div class="overflow-x-auto">
+<div class="overflow-x-auto" x-data="{ 
+    selectedItems: [],
+    showModal: false,
+    currentDetail: null,
+    selectAll(event) {
+        if (event.target.checked) {
+            this.selectedItems = Array.from(document.querySelectorAll('.item-checkbox')).map(cb => cb.value);
+        } else {
+            this.selectedItems = [];
+        }
+    },
+    printSelected() {
+        if (this.selectedItems.length === 0) {
+            addAlert('Por favor selecciona al menos una OT para imprimir', 'info');
+            return;
+        }
+        const ids = this.selectedItems.join(',');
+        window.open(`/api/print/multiple?ids=${ids}`, '_blank');
+    },
+    printOne(fileId) {
+        window.open(`/api/print/single/${fileId}`, '_blank');
+    },
+    openDetail(item) {
+        this.currentDetail = item;
+        this.showModal = true;
+    }
+}">
+    <!-- Acciones de Tabla -->
+    <div class="p-4 flex justify-between items-center bg-slate-50 border-b border-slate-200" x-show="selectedItems.length > 0">
+        <span class="text-sm font-medium text-slate-600">
+            <span x-text="selectedItems.length"></span> ítems seleccionados
+        </span>
+        <button @click="printSelected()" class="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-lg shadow-sm text-white bg-primary-600 hover:bg-primary-700 transition-all">
+            <i class="fas fa-print mr-2"></i> Imprimir Seleccionados
+        </button>
+    </div>
+
     <table class="w-full text-sm text-left">
         <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200">
             <tr>
+                <th class="px-4 py-4 w-10 text-center">
+                    <input type="checkbox" @change="selectAll($event)" class="rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                </th>
                 <th class="px-6 py-4 font-semibold">OT / Archivo</th>
                 <th class="px-6 py-4 font-semibold">Cliente</th>
                 <th class="px-6 py-4 font-semibold">Estado de Validación</th>
@@ -12,6 +51,9 @@
         <tbody class="divide-y divide-slate-100">
             {% for item in results %}
             <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="px-4 py-4 text-center">
+                    <input type="checkbox" value="{{ item.id }}" x-model="selectedItems" class="item-checkbox rounded border-slate-300 text-primary-600 focus:ring-primary-500">
+                </td>
                 <td class="px-6 py-4">
                     <div class="flex flex-col">
                         <span class="font-bold text-slate-900">{{ item.ot }}</span>
@@ -57,16 +99,21 @@
                     {% endif %}
                 </td>
                 <td class="px-6 py-4 text-right">
-                    <button class="text-primary-600 hover:text-primary-800 font-medium transition-colors"
-                            @click="addAlert('Detalles de la OT {{ item.ot }}', 'info')">
-                        <i class="fas fa-eye"></i>
-                    </button>
+                    <div class="flex items-center justify-end gap-2">
+                        <button @click="printOne('{{ item.id }}')" class="p-1.5 text-slate-400 hover:text-primary-600 transition-colors" title="Imprimir">
+                            <i class="fas fa-print"></i>
+                        </button>
+                        <button class="p-1.5 text-slate-400 hover:text-primary-600 transition-colors"
+                                @click="openDetail({{ item | tojson | safe }})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
                 </td>
             </tr>
             {% endfor %}
             {% if not results %}
             <tr>
-                <td colspan="5" class="p-12 text-center text-slate-400">
+                <td colspan="6" class="p-12 text-center text-slate-400">
                     <i class="fas fa-folder-open text-4xl mb-4 opacity-20"></i>
                     <p>No hay resultados para mostrar actualmente.</p>
                 </td>
@@ -74,4 +121,120 @@
             {% endif %}
         </tbody>
     </table>
+
+    <!-- Modal de Detalle (Alpine.js) -->
+    <div x-show="showModal" 
+         class="fixed inset-0 z-[100] overflow-y-auto" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         x-cloak>
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 transition-opacity" @click="showModal = false">
+                <div class="absolute inset-0 bg-slate-900 opacity-75"></div>
+            </div>
+
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen"></span>&#8203;
+            
+            <div class="inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full"
+                 @click.away="showModal = false">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <div class="sm:flex sm:items-start">
+                        <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
+                            <div class="flex justify-between items-center border-b border-slate-100 pb-4 mb-4">
+                                <h3 class="text-xl leading-6 font-bold text-slate-900 flex items-center gap-2">
+                                    <i class="fas fa-circle-info text-primary-600"></i>
+                                    Detalle de la OT: <span x-text="currentDetail?.ot || 'N/A'"></span>
+                                </h3>
+                                <button @click="showModal = false" class="text-slate-400 hover:text-slate-600">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-if="currentDetail">
+                                <!-- Información General -->
+                                <div class="space-y-4">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Información General</h4>
+                                    <div class="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
+                                        <div class="flex justify-between"><span class="text-slate-500">Cliente:</span><span class="font-medium text-slate-900" x-text="currentDetail.cliente"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Referencia:</span><span class="font-medium text-slate-900 text-right" x-text="currentDetail.data?.Referencia"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Fecha Entrega:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Fecha de Entrega']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">OC:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Orden de Compra(OC)']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Cant. Planificada:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Cant. Planificada']"></span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Detalles Técnicos -->
+                                <div class="space-y-4">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detalles Técnicos</h4>
+                                    <div class="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
+                                        <div class="flex justify-between"><span class="text-slate-500">Formato Bolsa:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Formato Bolsa']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Calibre:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Calibre Extrusión']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Ancho Extrusión:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Ancho Extrusión (cm)']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Largo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Largo Sellado (cm)']"></span></div>
+                                        <div class="flex justify-between"><span class="text-slate-500">Tipo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Tipo Sellado']"></span></div>
+                                    </div>
+                                </div>
+
+                                <!-- Composiciones -->
+                                <div class="col-span-1 md:col-span-2 space-y-4">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Composiciones</h4>
+                                    <div class="overflow-hidden border border-slate-100 rounded-xl">
+                                        <table class="w-full text-xs text-left">
+                                            <thead class="bg-slate-50 text-slate-500">
+                                                <tr>
+                                                    <th class="px-4 py-2">Mat. Prima</th>
+                                                    <th class="px-4 py-2">Constante</th>
+                                                    <th class="px-4 py-2">%</th>
+                                                    <th class="px-4 py-2">Mat. Sec.</th>
+                                                    <th class="px-4 py-2">% Sec.</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-50">
+                                                <template x-for="comp in currentDetail.data?.Composiciones" :key="comp['Referencia Materia Prima']">
+                                                    <tr>
+                                                        <td class="px-4 py-2 font-medium" x-text="comp['Referencia Materia Prima']"></td>
+                                                        <td class="px-4 py-2" x-text="comp['Constante']"></td>
+                                                        <td class="px-4 py-2" x-text="comp['% Materia Prima'] + '%'"></td>
+                                                        <td class="px-4 py-2" x-text="comp['Materia Secundaria'] || '---'"></td>
+                                                        <td class="px-4 py-2" x-text="comp['% Secundario'] + '%'"></td>
+                                                    </tr>
+                                                </template>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Observaciones -->
+                                <div class="col-span-1 md:col-span-2 space-y-2">
+                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Observaciones</h4>
+                                    <div class="bg-primary-50 text-primary-800 rounded-xl p-4 text-xs italic">
+                                        <template x-for="obs in currentDetail.data?.Observaciones">
+                                            <p class="mb-1" x-text="'• ' + obs"></p>
+                                        </template>
+                                        <p x-show="!currentDetail.data?.Observaciones?.length" class="text-slate-400">Sin observaciones registradas.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-slate-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse gap-2">
+                    <button type="button" 
+                            class="w-full inline-flex justify-center rounded-xl border border-transparent shadow-sm px-4 py-2 bg-primary-600 text-base font-medium text-white hover:bg-primary-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-all"
+                            @click="printOne(currentDetail.id)">
+                        <i class="fas fa-print mr-2"></i> Imprimir OT
+                    </button>
+                    <button type="button" 
+                            class="mt-3 w-full inline-flex justify-center rounded-xl border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-all"
+                            @click="showModal = false">
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
