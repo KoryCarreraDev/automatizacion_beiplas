@@ -104,7 +104,7 @@
                             <i class="fas fa-print"></i>
                         </button>
                         <button class="p-1.5 text-slate-400 hover:text-primary-600 transition-colors"
-                                @click="openDetail({{ item | tojson | safe }})">
+                                @click='openDetail({{ item | tojson | safe }})'>
                             <i class="fas fa-eye"></i>
                         </button>
                     </div>
@@ -154,68 +154,153 @@
                                 </button>
                             </div>
                             
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" x-if="currentDetail">
-                                <!-- Información General -->
-                                <div class="space-y-4">
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Información General</h4>
-                                    <div class="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
-                                        <div class="flex justify-between"><span class="text-slate-500">Cliente:</span><span class="font-medium text-slate-900" x-text="currentDetail.cliente"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Referencia:</span><span class="font-medium text-slate-900 text-right" x-text="currentDetail.data?.Referencia"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Fecha Entrega:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Fecha de Entrega']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">OC:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Orden de Compra(OC)']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Cant. Planificada:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Cant. Planificada']"></span></div>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" x-show="currentDetail">
+                                <!-- Columna Izquierda: Info Principal -->
+                                <div class="md:col-span-1 space-y-6">
+                                    <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100">
+                                        <h4 class="text-xs font-bold text-primary-600 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <i class="fas fa-file-invoice"></i> Información General
+                                        </h4>
+                                        <div class="space-y-3 text-sm">
+                                            <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Cliente</span><span class="font-semibold text-slate-900" x-text="currentDetail?.cliente"></span></div>
+                                            <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Referencia</span><span class="font-medium text-slate-700" x-text="currentDetail?.data?.Referencia"></span></div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Fecha Entrega</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Fecha de Entrega'] || '---'"></span></div>
+                                                <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Orden Compra</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Orden de Compra(OC)'] || '---'"></span></div>
+                                            </div>
+                                            <div class="grid grid-cols-2 gap-4">
+                                                <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Cant. Planificada</span><span class="font-bold text-primary-700" x-text="currentDetail?.data?.['Cant. Planificada'] || '---'"></span></div>
+                                                <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Constante</span><span class="font-bold text-slate-900" x-text="currentDetail?.data?.Constante || '---'"></span></div>
+                                            </div>
+                                            <div class="flex flex-col"><span class="text-slate-500 text-[11px] uppercase">Procesos</span><span class="text-xs text-slate-600" x-text="currentDetail?.data?.Procesos || '---'"></span></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Presentación Final -->
+                                    <div class="bg-amber-50/50 rounded-2xl p-5 border border-amber-100">
+                                        <h4 class="text-xs font-bold text-amber-700 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <i class="fas fa-box-open"></i> Presentación Final
+                                        </h4>
+                                        <div class="grid grid-cols-2 gap-4 text-sm">
+                                            <div class="flex flex-col"><span class="text-amber-600/70 text-[10px] uppercase">Paquetes de</span><span class="font-bold text-amber-900" x-text="(currentDetail?.data?.['Paquetes de (Unidades)'] || '---') + ' Und'"></span></div>
+                                            <div class="flex flex-col"><span class="text-amber-600/70 text-[10px] uppercase">Bultos de</span><span class="font-bold text-amber-900" x-text="(currentDetail?.data?.['Bultos de (paquetes)'] || '---') + ' Paq'"></span></div>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Detalles Técnicos -->
-                                <div class="space-y-4">
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Detalles Técnicos</h4>
-                                    <div class="bg-slate-50 rounded-xl p-4 space-y-3 text-sm">
-                                        <div class="flex justify-between"><span class="text-slate-500">Formato Bolsa:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Formato Bolsa']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Calibre:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Calibre Extrusión']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Ancho Extrusión:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Ancho Extrusión (cm)']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Largo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Largo Sellado (cm)']"></span></div>
-                                        <div class="flex justify-between"><span class="text-slate-500">Tipo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail.data?.['Tipo Sellado']"></span></div>
-                                    </div>
-                                </div>
+                                <!-- Columna Central y Derecha: Detalles Técnicos -->
+                                <div class="md:col-span-2 space-y-6">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <!-- Extrusión -->
+                                        <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                                            <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                <i class="fas fa-industry"></i> Extrusión
+                                            </h4>
+                                            <div class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Formato:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Formato Bolsa']"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Calibre:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Calibre Extrusión']"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Ancho:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Ancho Extrusión (cm)'] + ' cm'"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Largo:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Largo Extrusión (cm)'] + ' cm'"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Peso Bolsa:</span><span class="font-bold text-primary-600" x-text="currentDetail?.data?.['Peso Bolsa (gr)'] + ' gr'"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Caras:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.Caras"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Metros:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.Metros"></span></div>
+                                                <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Kilos:</span><span class="font-bold text-slate-900" x-text="currentDetail?.data?.Kilos"></span></div>
+                                            </div>
+                                        </div>
 
-                                <!-- Composiciones -->
-                                <div class="col-span-1 md:col-span-2 space-y-4">
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Composiciones</h4>
-                                    <div class="overflow-hidden border border-slate-100 rounded-xl">
-                                        <table class="w-full text-xs text-left">
-                                            <thead class="bg-slate-50 text-slate-500">
-                                                <tr>
-                                                    <th class="px-4 py-2">Mat. Prima</th>
-                                                    <th class="px-4 py-2">Constante</th>
-                                                    <th class="px-4 py-2">%</th>
-                                                    <th class="px-4 py-2">Mat. Sec.</th>
-                                                    <th class="px-4 py-2">% Sec.</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody class="divide-y divide-slate-50">
-                                                <template x-for="comp in currentDetail.data?.Composiciones" :key="comp['Referencia Materia Prima']">
+                                        <!-- Sellado y Troquelado -->
+                                        <div class="space-y-6">
+                                            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+                                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                    <i class="fas fa-stamp"></i> Sellado y Troquelado
+                                                </h4>
+                                                <div class="space-y-3 text-sm">
+                                                    <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Largo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Largo Sellado (cm)'] + ' cm'"></span></div>
+                                                    <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Tipo Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Tipo Sellado']"></span></div>
+                                                    <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Calibre Sellado:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Calibre Sellado']"></span></div>
+                                                    <div class="flex justify-between border-b border-slate-50 pb-1"><span class="text-slate-500">Tipo Troquelado:</span><span class="font-medium text-slate-900" x-text="currentDetail?.data?.['Tipo Troquelado'] || '---'"></span></div>
+                                                </div>
+                                            </div>
+
+                                            <!-- Impresión -->
+                                            <div class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm" x-show="currentDetail?.data?.['Impresión por Cara']?.length">
+                                                <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                                    <i class="fas fa-palette"></i> Impresión
+                                                </h4>
+                                                <div class="space-y-2">
+                                                    <template x-for="(cara, index) in currentDetail?.data?.['Impresión por Cara']">
+                                                        <div class="flex gap-2 items-start text-sm">
+                                                            <span class="bg-slate-100 text-slate-600 text-[10px] px-1.5 py-0.5 rounded font-bold" x-text="'CARA ' + (index + 1)"></span>
+                                                            <span class="text-slate-700" x-text="cara"></span>
+                                                        </div>
+                                                    </template>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Fuelles -->
+                                    <div class="bg-slate-50 rounded-2xl p-5 border border-slate-100" x-show="currentDetail?.data?.Fuelles?.length">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                            <i class="fas fa-arrows-left-right"></i> Fuelles
+                                        </h4>
+                                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <template x-for="fuelle in currentDetail?.data?.Fuelles">
+                                                <div class="bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+                                                    <span class="block text-[10px] text-slate-400 uppercase font-bold" x-text="fuelle.Tipo"></span>
+                                                    <span class="text-sm font-bold text-slate-900" x-text="fuelle['Medida 1'] + ' x ' + fuelle['Medida 2']"></span>
+                                                </div>
+                                            </template>
+                                        </div>
+                                    </div>
+
+                                    <!-- Composiciones -->
+                                    <div class="space-y-4">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                            <i class="fas fa-vial"></i> Composiciones de Materia Prima
+                                        </h4>
+                                        <div class="overflow-hidden border border-slate-100 rounded-2xl shadow-sm">
+                                            <table class="w-full text-xs text-left">
+                                                <thead class="bg-slate-50 text-slate-500 font-bold">
                                                     <tr>
-                                                        <td class="px-4 py-2 font-medium" x-text="comp['Referencia Materia Prima']"></td>
-                                                        <td class="px-4 py-2" x-text="comp['Constante']"></td>
-                                                        <td class="px-4 py-2" x-text="comp['% Materia Prima'] + '%'"></td>
-                                                        <td class="px-4 py-2" x-text="comp['Materia Secundaria'] || '---'"></td>
-                                                        <td class="px-4 py-2" x-text="comp['% Secundario'] + '%'"></td>
+                                                        <th class="px-4 py-3">Mat. Prima</th>
+                                                        <th class="px-4 py-3">Constante</th>
+                                                        <th class="px-4 py-3 text-center">%</th>
+                                                        <th class="px-4 py-3">Mat. Sec.</th>
+                                                        <th class="px-4 py-3 text-center">% Sec.</th>
                                                     </tr>
-                                                </template>
-                                            </tbody>
-                                        </table>
+                                                </thead>
+                                                <tbody class="divide-y divide-slate-50">
+                                                    <template x-for="comp in currentDetail?.data?.Composiciones" :key="comp['Referencia Materia Prima']">
+                                                        <tr class="hover:bg-slate-50/50 transition-colors">
+                                                            <td class="px-4 py-3 font-bold text-slate-900" x-text="comp['Referencia Materia Prima']"></td>
+                                                            <td class="px-4 py-3"><span class="px-2 py-0.5 bg-primary-50 text-primary-700 rounded-full font-bold text-[10px]" x-text="comp['Constante']"></span></td>
+                                                            <td class="px-4 py-3 text-center font-bold text-slate-700" x-text="comp['% Materia Prima'] + '%'"></td>
+                                                            <td class="px-4 py-3 text-slate-600" x-text="comp['Materia Secundaria'] || '---'"></td>
+                                                            <td class="px-4 py-3 text-center text-slate-500" x-text="comp['% Secundario'] ? comp['% Secundario'] + '%' : '---'"></td>
+                                                        </tr>
+                                                    </template>
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <!-- Observaciones -->
-                                <div class="col-span-1 md:col-span-2 space-y-2">
-                                    <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider">Observaciones</h4>
-                                    <div class="bg-primary-50 text-primary-800 rounded-xl p-4 text-xs italic">
-                                        <template x-for="obs in currentDetail.data?.Observaciones">
-                                            <p class="mb-1" x-text="'• ' + obs"></p>
-                                        </template>
-                                        <p x-show="!currentDetail.data?.Observaciones?.length" class="text-slate-400">Sin observaciones registradas.</p>
+                                    <!-- Observaciones -->
+                                    <div class="space-y-2">
+                                        <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                            <i class="fas fa-comment-dots"></i> Observaciones y Notas
+                                        </h4>
+                                        <div class="bg-primary-50/30 text-primary-900 rounded-2xl p-5 text-sm border border-primary-100/50">
+                                            <div class="space-y-2">
+                                                <template x-for="obs in currentDetail?.data?.Observaciones">
+                                                    <div class="flex gap-3 items-start">
+                                                        <i class="fas fa-chevron-right text-[10px] mt-1.5 text-primary-400"></i>
+                                                        <p class="leading-relaxed" x-text="obs"></p>
+                                                    </div>
+                                                </template>
+                                                <p x-show="!currentDetail?.data?.Observaciones?.length" class="text-slate-400 italic">No hay observaciones adicionales registradas para esta orden.</p>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
